@@ -1,0 +1,93 @@
+# name: docker-image-maven
+
+# on:
+#   workflow_dispatch:
+#  #workflow_run:
+#    # repository: apm0005237-ghe-doc-img-maven
+#    # workflow: doc-img-node.yml
+#   #  types: completed
+# # trigger:
+# #   batch: true
+# #   branches:
+# #     include:
+# #     - '*'
+# #     exclude:
+# #     - 'test/*'
+
+# # resources:
+# #   pipelines:
+# #   - pipeline: doc_img_java
+# #     source : doc-img-java
+# #     trigger:
+# #       branches:
+# #         include:
+# #         - 'master'
+
+# variables:
+#   poolNameLnx: "OP-US-S-AzureDevOps-Lnx"
+#   dtrConnectionName: "docker-dtr-dev.ntrs.com"
+#   dtrRepository: "azure-devops/maven"
+#   isMasterBranch: $[ eq(variables['Build.SourceBranch'], 'refs/heads/master') ]
+#   dockerBuildArgs: "--build-arg http_proxy=http://http-proxy.ntrs.com:80 --build-arg https_proxy=http://http-proxy.ntrs.com:443"
+
+
+# jobs:
+# - job:
+#   displayName: "Maven Linux"
+#   pool:
+#     name: ${{ variables.poolNameLnx }}
+#   steps:
+#   - checkout: self
+#   - task: Docker@2
+#     displayName: "Build Image"
+#     inputs:
+#       containerRegistry: ${{ variables.dtrConnectionName }}
+#       repository: ${{ variables.dtrRepository }}
+#       command: 'build'
+#       arguments: '--pull ${{ variables.dockerBuildArgs }}'
+#       Dockerfile: '3/openjdk-8/Dockerfile'
+#       buildContext: '$(Build.SourcesDirectory)'
+#       tags: |
+#         3-openjdk-8-$(Build.BuildId)
+#         3-openjdk-8
+
+#   - task: Docker@2
+#     displayName: "Push Image"
+#     condition: and(succeeded(), eq(variables.isMasterBranch, true))
+#     inputs:
+#       containerRegistry: ${{ variables.dtrConnectionName }}
+#       repository: ${{ variables.dtrRepository }}
+#       command: 'push'
+#       tags: |
+#         3-openjdk-8-$(Build.BuildId)
+#         3-openjdk-8
+
+name: docker-image-maven
+
+on:
+  workflow_dispatch:
+env:
+ 
+  dtrConnectionName: docker-dtr-dev.ntrs.com
+  dtrRepository: azure-devops/maven
+#   isMasterBranch: $[ eq(github.ref, 'refs/heads/master') ]
+  dockerBuildArgs: "--build-arg http_proxy=http://AMER-ZIA-Proxy.ntrs.com:9443 --build-arg https_proxy=http://AMER-ZIA-Proxy.ntrs.com:9443"
+  
+jobs:
+   maven-linux:
+    runs-on: [self-hosted, Linux, enterprise, docker ]
+    steps:
+      - uses: actions/checkout@v2
+      - name: Docker Login
+        uses: azure/docker-login@v1
+        with:
+          login-server: ${{ env.dtrConnectionName }}
+          username: ${{ secrets.REGISTRY_USERNAME }}
+          password: ${{ secrets.REGISTRY_PASSWORD }}
+      
+      - name: Build Image Maven
+        run: docker build ${{ env.dockerBuildArgs  }} --pull --tag 3-openjdk-8-${{ github.run_id }} --tag 3-openjdk-8 --file ./3/openjdk-8/Dockerfile . 
+#       - name: Build Image
+#       run: docker build --file 3/openjdk-8/Dockerfile ${{ env. variables.dtrRepository  }} --tags 3-openjdk-8-${{ github.run_id }},3-openjdk-8 --pull ${{ env. variables.dockerBuildArgs  }} ${{ github.workspace }}
+#     - name: Push Image
+#       run: docker push --file Dockerfile ${{ env. variables.dtrConnectionName  }} ${{ env. variables.dtrRepository  }} --tags 3-openjdk-8-${{ github.run_id }},3-openjdk-8
