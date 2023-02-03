@@ -1,0 +1,63 @@
+trigger:
+  batch: true
+  branches:
+    include:
+    - '*'
+    exclude:
+    - test/*
+  paths:
+    exclude:
+    - test/*
+
+resources:
+  pipelines:
+  - pipeline: doc_img_java
+    source : doc-img-java
+    trigger:
+      branches:
+        include:
+        - 'master'
+
+variables:
+  poolNameLnx: "OP-US-S-AzureDevOps-Lnx"
+  dtrConnectionName: "docker-dtr-dev.ntrs.com"
+  dtrRepository: "azure-devops/gradle"
+
+jobs:
+- job:
+  displayName: "Gradle (OpenJDK 8) Linux"
+  pool:
+    name: ${{ variables.poolNameLnx }}
+  steps:
+  - checkout: self
+  - task: Docker@2
+    displayName: "Build Gradle Linux (OpenJDK 8) Image"
+    inputs:
+      containerRegistry: ${{ variables.dtrConnectionName }}
+      repository: ${{ variables.dtrRepository }}
+      command: 'build'
+      ${{ if eq(variables['Build.SourceBranch'], 'refs/heads/master') }}:
+        arguments: '--pull --target base'
+      ${{ if ne(variables['Build.SourceBranch'], 'refs/heads/master') }}:
+          arguments: '--pull'
+      buildContext: '$(Build.SourcesDirectory)'
+      Dockerfile: 'openjdk/8/Dockerfile'
+      ${{ if eq(variables['Build.SourceBranch'], 'refs/heads/master') }}:
+        tags: |
+          wrapper-openjdk-8-$(Build.BuildId)
+          wrapper-openjdk-8
+      ${{ if ne(variables['Build.SourceBranch'], 'refs/heads/master') }}:
+        tags: |
+          wrapper-openjdk-8-$(Build.BuildId)-dev
+          wrapper-openjdk-8-dev
+
+  - ${{ if eq(variables['Build.SourceBranch'], 'refs/heads/master') }}:
+    - task: Docker@2
+      displayName: "Push Gradle Linux (OpenJDK 8) Image"
+      inputs:
+        containerRegistry: ${{ variables.dtrConnectionName }}
+        repository: ${{ variables.dtrRepository }}
+        command: 'push'
+        tags: |
+          wrapper-openjdk-8-$(Build.BuildId)
+          wrapper-openjdk-8
