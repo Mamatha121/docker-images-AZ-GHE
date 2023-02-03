@@ -1,0 +1,47 @@
+name: $(Date:yyyyMMdd)$(Rev:.rrr)
+
+trigger:
+  batch: true
+  branches:
+    include:
+    - '*'
+    exclude:
+    - refs/tags/*
+    - test/*
+
+resources:
+  pipelines:
+  - pipeline: doc_img_node
+    source : doc-img-node
+    trigger:
+      branches:
+        include:
+        - 'master'
+
+variables:
+  poolNameLnx: "OP-US-S-AzureDevOps-Lnx"
+  dtrConnectionName: "docker-dtr-dev.ntrs.com"
+  dtrRepository: "azure-devops/terraform"
+  dockerBuildArgs: "--build-arg http_proxy=http://http-proxy.ntrs.com:80 --build-arg https_proxy=http://http-proxy.ntrs.com:443 --pull"
+  ${{ if eq(variables['Build.SourceBranchName'], 'master') }}:
+    isMasterBranch: 'true'
+  ${{ if ne(variables['Build.SourceBranchName'], 'master') }}:
+    isMasterBranch: 'false'
+
+jobs:
+- job: 'terraform'
+  displayName: 'Terraform'
+  pool:
+    name: ${{ variables.poolNameLnx }}
+  steps:
+  - template: .az/steps.yml
+    parameters:
+      dockerFile: 'Dockerfile'
+      isMasterBranch: ${{ variables.isMasterBranch }}
+      dtrConnectionName: ${{ variables.dtrConnectionName }}
+      dtrRepository: ${{ variables.dtrRepository }}
+      dockerBuildArgs: ${{ variables.dockerBuildArgs }}
+      tags: |
+        $(Build.BuildId)
+        latest
+      buildContext: '**'
