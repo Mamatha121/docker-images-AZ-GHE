@@ -1,0 +1,65 @@
+name: $(Date:yyyyMMdd)$(Rev:.rrr)
+
+trigger:
+  batch: true
+  branches:
+    include:
+    - '*'
+    exclude:
+    - refs/tags/*
+    - test/*
+
+resources:
+  pipelines:
+  - pipeline: doc_img_node
+    source : doc-img-node
+    trigger:
+      branches:
+        include:
+        - 'master'
+
+variables:
+  poolNameLnx: "OP-US-S-AzureDevOps-Lnx"
+  dtrConnectionName: "docker-dtr-dev.ntrs.com"
+  dtrRepository: "azure-devops/python"
+  dockerBuildArgs: "--build-arg http_proxy=http://http-proxy.ntrs.com:80 --build-arg https_proxy=http://http-proxy.ntrs.com:443 --pull"
+  ${{ if eq(variables['Build.SourceBranchName'], 'master') }}:
+    isMasterBranch: 'true'
+  ${{ if ne(variables['Build.SourceBranchName'], 'master') }}:
+    isMasterBranch: 'false'
+
+jobs:
+- job: 'python_3_7'
+  displayName: 'Python 3.7'
+  pool:
+    name: ${{ variables.poolNameLnx }}
+  steps:
+  - template: .az/steps.yml
+    parameters:
+      dockerFile: '3.7/Dockerfile'
+      isMasterBranch: ${{ variables.isMasterBranch }}
+      dtrConnectionName: ${{ variables.dtrConnectionName }}
+      dtrRepository: ${{ variables.dtrRepository }}
+      dockerBuildArgs: ${{ variables.dockerBuildArgs }}
+      tags: |
+        3.7-$(Build.BuildId)
+        3.7
+      buildContext: '**'
+
+- job: 'python_3_7_dependencies'
+  displayName: 'Python 3.7 Dependencies'
+  dependsOn: 'python_3_7'
+  pool:
+    name: ${{ variables.poolNameLnx }}
+  steps:
+  - template: .az/steps.yml
+    parameters:
+      dockerFile: '3.7/dependencies/Dockerfile'
+      isMasterBranch: ${{ variables.isMasterBranch }}
+      dtrConnectionName: ${{ variables.dtrConnectionName }}
+      dtrRepository: ${{ variables.dtrRepository }}
+      dockerBuildArgs: ${{ variables.dockerBuildArgs }}
+      tags: |
+        3.7-deps-$(Build.BuildId)
+        3.7-deps
+      buildContext: '**'
