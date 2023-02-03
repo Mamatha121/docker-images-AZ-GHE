@@ -1,0 +1,56 @@
+trigger:
+  batch: true
+  branches:
+    include:
+    - '*'
+    exclude:
+    - test/*
+
+resources:
+  pipelines:
+  - pipeline: doc_img_maven
+    source : doc-img-maven
+    trigger:
+      branches:
+        include:
+        - 'master'
+
+variables:
+  poolNameLnx: "OP-US-S-AzureDevOps-Lnx"
+  dtrConnectionName: "docker-dtr-dev.ntrs.com"
+  dtrRepository: "azure-devops/gatling"
+  isMasterBranch: $[ eq(variables['Build.SourceBranch'], 'refs/heads/master') ]
+  dockerBuildArgs: "--build-arg http_proxy=http://http-proxy.ntrs.com:80 --build-arg https_proxy=http://http-proxy.ntrs.com:443"
+
+
+jobs:
+- job:
+  displayName: "Gatling Linux"
+  pool:
+    name: ${{ variables.poolNameLnx }}
+  steps:
+  - checkout: self
+
+  - task: Docker@2
+    displayName: "Build Gatling Image"
+    inputs:
+      containerRegistry: ${{ variables.dtrConnectionName }}
+      repository: ${{ variables.dtrRepository }}
+      command: 'build'
+      Dockerfile: 'openjdk-8/Dockerfile'
+      arguments: '--pull ${{ variables.dockerBuildArgs }}'
+      buildContext: '$(Build.SourcesDirectory)'
+      tags: |
+        3-openjdk-8-$(Build.BuildId)
+        3-openjdk-8
+
+  - task: Docker@2
+    displayName: "Push Gatling Image"
+    condition: and(succeeded(), eq(variables.isMasterBranch, true))
+    inputs:
+      containerRegistry: ${{ variables.dtrConnectionName }}
+      repository: ${{ variables.dtrRepository }}
+      command: 'push'
+      tags: |
+        3-openjdk-8-$(Build.BuildId)
+        3-openjdk-8
