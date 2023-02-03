@@ -1,0 +1,78 @@
+name: Update Proxy of GHE Runners on Windows Server
+
+on:
+  workflow_dispatch:
+    inputs:
+      server:
+        description: "Server to Update"
+        type: string
+        required: true
+
+jobs:
+  set-proxy-values:
+    name: Setting Proxy Values
+    runs-on: ["${{ github.event.inputs.server }}", ag1]
+    outputs:
+      http: ${{ steps.set-proxy.outputs.http_value }}
+      https: ${{ steps.set-proxy.outputs.https_value }}
+      agent-count: ${{ steps.set-proxy.outputs.agent-count }}
+    steps:
+      - name: Setting Proxy Values
+        id: set-proxy
+        run: |
+          echo "::set-output name=http_value::http://AMER-ZIA-Proxy.ntrs.com:9443"
+          echo "::set-output name=https_value::http://AMER-ZIA-Proxy.ntrs.com:9443"
+          $agents = Get-Service -Displayname "GitHub*"
+          $agentcount = ($agents).Count
+          echo "::set-output name=agent-count::$agentcount"
+          
+
+  host-update-from-ag2:
+    name: Updating from Agent 2 and Higher
+    runs-on: ["${{ github.event.inputs.server }}", ag1]
+    needs: [set-proxy-values]
+    steps:
+      - name: Echo Proxy Values
+        run: |
+          echo ${{needs.set-proxy-values.outputs.http}}
+          echo ${{needs.set-proxy-values.outputs.https}}
+          echo ${{needs.set-proxy-values.outputs.agent-count}}
+          
+      - name: Checkout code
+        uses: actions/checkout@v3.3.0
+          
+      - name: Updating Variables, env.var and Agents Restart
+        run: |
+          setx /m HTTP_PROXY "${{needs.set-proxy-values.outputs.http}}"
+          setx /m HTTPS_PROXY "${{needs.set-proxy-values.outputs.https}}"
+          setx /m http_proxy "${{needs.set-proxy-values.outputs.http}}"
+          setx /m https_proxy "${{needs.set-proxy-values.outputs.https}}"
+          setx /m NODE_EXTRA_CA_CERTS "E:\APPS\github\conf\ZscalerRootCerts\ZscalerRootCertificate-2048-SHA256.pem"
+          $PATH_EXISTS = Test-Path -Path "E:\APPS\github\conf\ZscalerRootCerts"
+          if (-not $PATH_EXISTS)
+          {
+            New-Item -Path "E:\APPS\github\conf" -Name "ZscalerRootCerts" -ItemType "directory"
+          }
+          Move-Item –Path .\ZscalerRootCertificate-2048-SHA256.pem -Destination E:\APPS\github\conf\ZscalerRootCerts
+          ('http_proxy=${{needs.set-proxy-values.outputs.http}}', 'https_proxy=${{needs.set-proxy-values.outputs.https}}', 'HTTP_PROXY=${{needs.set-proxy-values.outputs.http}}', 'HTTPS_PROXY=${{needs.set-proxy-values.outputs.https}}', 'NO_PROXY=.ntrs.com', 'GitHub.Runner.DisableUpdate=true', 'NODE_EXTRA_CA_CERTS=E:\APPS\github\conf\ZscalerRootCerts\ZscalerRootCertificate-2048-SHA256.pem') -join "`n" | Set-Content -NoNewline E:\APPS\github\conf\.env; "$(Get-Content -Raw E:\APPS\github\conf\.env)"
+          for ($i = 2; $i -le ${{needs.set-proxy-values.outputs.agent-count}}; $i++)
+          {
+              Restart-Service -Displayname "GitHub*ag$i)"
+          }
+
+  wait-for-agents-restart:
+    name: Wait for GHE Runner Agents Restart
+    runs-on: ["${{ github.event.inputs.server }}", ag1]
+    environment: WAIT-TIME
+    needs: [host-update-from-ag2]
+    steps:
+      - name: Wait completed
+        run: echo "Wait Completed"
+
+  host-update-ag1:
+    name: Updating on Agent 1
+    runs-on: ["${{ github.event.inputs.server }}", ag2]
+    needs: [wait-for-agents-restart]
+    steps:
+      - name: Restart Agent 1
+        run: Restart-Service -Displayname "GitHub*ag1)"
