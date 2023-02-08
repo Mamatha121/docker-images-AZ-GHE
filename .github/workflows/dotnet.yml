@@ -1,0 +1,104 @@
+name: $(Date:yyyyMMdd)$(Rev:.rrr)
+
+trigger:
+  batch: true
+  branches:
+    include:
+    - '*'
+    exclude:
+    - refs/tags/*
+
+variables:
+  poolNameLnx: "OP-US-S-AzureDevOps-Lnx"
+  poolNameWin: "OP-US-S-AzureDevOps-Win"
+  dtrConnectionName: "docker-dtr-dev.ntrs.com"
+  dtrRepositoryForRunTime: "azure-devops/dotnet-runtime"
+  dtrRepositoryForSDK: "azure-devops/dotnet-sdk"
+  ${{ if eq(variables['Build.SourceBranchName'], 'master') }}:
+    isMasterBranch: 'true'
+  ${{ if ne(variables['Build.SourceBranchName'], 'master') }}:
+    isMasterBranch: 'false'
+  #isMasterBranch: $[ eq(variables['Build.SourceBranch'], 'refs/heads/master') ]
+
+jobs:
+- template: .az/jobs.yml
+  parameters:
+    name: 'dotnet_runtime_3_1_lnx'
+    jobDisplayName: '.NET Runtime 3.1 Linux'
+    poolName: ${{ variables.poolNameLnx }}
+    dockerFile: 'runtime/3.1/Dockerfile'
+    isMasterBranch: ${{ variables.isMasterBranch }}
+    dtrConnectionName: ${{ variables.dtrConnectionName }}
+    dtrRepository: ${{ variables.dtrRepositoryForRunTime }}
+    tags: |
+      lnx-3.1-$(Build.BuildId)
+      lnx-3.1
+
+- template: .az/jobs.yml
+  parameters:
+    name: 'dotnet_runtime_3_1_win'
+    jobDisplayName: '.NET Runtime 3.1 Windows'
+    poolName: ${{ variables.poolNameWin }}
+    dockerFile: 'runtime\3.1\Dockerfile'
+    isMasterBranch: ${{ variables.isMasterBranch }}
+    dtrConnectionName: ${{ variables.dtrConnectionName }}
+    dtrRepository: ${{ variables.dtrRepositoryForRunTime }}
+    tags: |
+      win2019-3.1-$(Build.BuildId)
+      win2019-3.1
+
+- template: .az/jobs.yml
+  parameters:
+    name: 'dotnet_sdk_3_1_lnx'
+    jobDisplayName: '.NET SDK 3.1 Linux'
+    poolName: ${{ variables.poolNameLnx }}
+    dockerFile: 'sdk/3.1/lnx/Dockerfile'
+    isMasterBranch: ${{ variables.isMasterBranch }}
+    dtrConnectionName: ${{ variables.dtrConnectionName }}
+    dtrRepository: ${{ variables.dtrRepositoryForSDK }}
+    buildContext: 'sdk/'
+    tags: |
+      lnx-3.1-$(Build.BuildId)
+      lnx-3.1
+
+- template: .az/jobs.yml
+  parameters:
+    name: 'dotnet_sdk_3_1_win'
+    jobDisplayName: '.NET SDK 3.1 Windows'
+    poolName: ${{ variables.poolNameWin }}
+    dockerFile: 'sdk\3.1\win\Dockerfile'
+    isMasterBranch: ${{ variables.isMasterBranch }}
+    dtrConnectionName: ${{ variables.dtrConnectionName }}
+    dtrRepository: ${{ variables.dtrRepositoryForSDK }}
+    buildContext: 'sdk/'
+    tags: |
+      win2019-3.1-$(Build.BuildId)
+      win2019-3.1
+
+- template: .az/jobs.yml
+  parameters:
+    name: 'dotnet_sdk_5_0_lnx'
+    jobDisplayName: '.NET SDK 5.0 Linux'
+    poolName: ${{ variables.poolNameLnx }}
+    dockerFile: 'sdk/5.0/lnx/Dockerfile'
+    isMasterBranch: ${{ variables.isMasterBranch }}
+    dtrConnectionName: ${{ variables.dtrConnectionName }}
+    dtrRepository: ${{ variables.dtrRepositoryForSDK }}
+    buildContext: 'sdk/'
+    tags: |
+      lnx-5.0-$(Build.BuildId)
+      lnx-5.0
+
+- template: .az/jobs.yml
+  parameters:
+    name: 'dotnet_sdk_5_0_win'
+    jobDisplayName: '.NET SDK 5.0 Windows'
+    poolName: ${{ variables.poolNameWin }}
+    dockerFile: 'sdk\5.0\win\Dockerfile'
+    isMasterBranch: ${{ variables.isMasterBranch }}
+    dtrConnectionName: ${{ variables.dtrConnectionName }}
+    dtrRepository: ${{ variables.dtrRepositoryForSDK }}
+    buildContext: 'sdk/'
+    tags: |
+      win2019-5.0-$(Build.BuildId)
+      win2019-5.0
