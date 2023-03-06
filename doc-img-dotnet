@@ -1,0 +1,189 @@
+name: docker-image-dotnet
+
+on:
+  workflow_dispatch:
+  #workflow_run:
+  #  repository: apm0005237-ghe-doc-img-maven
+  #  workflow: doc-img-node.yml
+  #  types: [completed]
+  #  branches: [master] ( check it is master or main)
+  #push:
+  #  branches:
+  #  - '*'
+  #  - '!refs/tags/*'
+
+
+env:
+  dtrConnectionName: "docker-dtr-dev.ntrs.com"
+  dtrRepositoryForRunTime: "azure-devops/dotnet-runtime"
+  dtrRepositoryForSDK: "azure-devops/dotnet-sdk"
+
+jobs:
+  dotnet_runtime_3_1_lnx:
+    runs-on: [] ( update linux runner )
+    steps:
+      - uses: actions/checkout@v2
+      
+      - name: Set env BRANCH
+        run: echo "BRANCH=$(echo $GITHUB_REF | cut -d'/' -f 3)" >> $GITHUB_ENV
+
+      - name: Set env isMasterBranch
+        run: |
+          if [[ $BRANCH == 'master' ]]; then
+              echo "isMasterBranch=true" >> "$GITHUB_ENV"
+          else
+              echo "isMasterBranch=false" >> "$GITHUB_ENV"
+          fi
+
+      - name: .NET Runtime 3.1 Linux
+        uses: ./az/jobs.yml
+        with:
+          dockerFile: "runtime/3.1/Dockerfile"
+          isMasterBranch: ${{ env.isMasterBranch }}
+          dtrConnectionName: "docker-dtr-dev.ntrs.com"
+          dtrRepository: "azure-devops/dotnet-runtime"
+          dockerBuildArgs: "--build-arg http_proxy=http://AMER-ZIA-Proxy.ntrs.com:9443 --build-arg https_proxy=http://AMER-ZIA-Proxy.ntrs.com:9443 (check proxy details)"
+          tags: |
+            lnx-3.1-${{ github.run_id }}
+            lnx-3.1
+    
+  dotnet_runtime_3_1_win:
+    runs-on: [] ( update windows runners )
+    steps:
+      - uses: actions/checkout@v2
+      
+      - name: Set env BRANCH
+        run: echo "BRANCH=$(echo $GITHUB_REF | cut -d'/' -f 3)" >> $GITHUB_ENV
+
+      - name: Set env isMasterBranch
+        run: |
+          if [[ $BRANCH == 'master' ]]; then
+              echo "isMasterBranch=true" >> "$GITHUB_ENV"
+          else
+              echo "isMasterBranch=false" >> "$GITHUB_ENV"
+          fi
+
+      - name: .NET Runtime 3.1 Windows
+        uses: .az/jobs.yml
+        with:
+          dockerFile: "runtime/3.1/Dockerfile"
+          isMasterBranch: ${{ env.isMasterBranch }}
+          dtrConnectionName: "docker-dtr-dev.ntrs.com"
+          dtrRepository: "azure-devops/dotnet-runtime"
+          dockerBuildArgs: "--build-arg http_proxy=http://AMER-ZIA-Proxy.ntrs.com:9443 --build-arg https_proxy=http://AMER-ZIA-Proxy.ntrs.com:9443 (check proxy details)"
+          tags: |
+            win2019-3.1-${{ github.run_id }}
+            win2019-3.1
+
+  dotnet_sdk_3_1_lnx:
+    runs-on: [] ( update linux  )
+    steps:
+      - uses: actions/checkout@v2
+      
+      - name: Set env BRANCH
+        run: echo "BRANCH=$(echo $GITHUB_REF | cut -d'/' -f 3)" >> $GITHUB_ENV
+
+      - name: Set env isMasterBranch
+        run: |
+          if [[ $BRANCH == 'master' ]]; then
+              echo "isMasterBranch=true" >> "$GITHUB_ENV"
+          else
+              echo "isMasterBranch=false" >> "$GITHUB_ENV"
+          fi
+
+      - name: .NET SDK 3.1 Linux
+        uses: .az/jobs.yml
+        with:
+          dockerFile: "sdk/3.1/lnx/Dockerfile"
+          isMasterBranch: ${{ env.isMasterBranch }}
+          dtrConnectionName: "docker-dtr-dev.ntrs.com"
+          dtrRepository: "azure-devops/dotnet-sdk"
+          buildContext: "sdk/"
+          tags: |
+            lnx-3.1-${{ github.run_id }}
+            lnx-3.1
+
+  dotnet_sdk_3_1_win:
+    runs-on: [] ( update windows runners  )
+    steps:
+      - uses: actions/checkout@v2
+      
+      - name: Set env BRANCH
+        run: echo "BRANCH=$(echo $GITHUB_REF | cut -d'/' -f 3)" >> $GITHUB_ENV
+
+      - name: Set env isMasterBranch
+        run: |
+          if [[ $BRANCH == 'master' ]]; then
+              echo "isMasterBranch=true" >> "$GITHUB_ENV"
+          else
+              echo "isMasterBranch=false" >> "$GITHUB_ENV"
+          fi
+
+      - name: .NET SDK 3.1 Windows
+        uses: .az/jobs.yml
+        with:
+          dockerFile: "sdk/3.1/win/Dockerfile"
+          isMasterBranch: ${{ env.isMasterBranch }}
+          dtrConnectionName: "docker-dtr-dev.ntrs.com"
+          dtrRepository: "azure-devops/dotnet-sdk"
+          buildContext: 'sdk/'
+          tags: |
+            win2019-3.1-${{ github.run_id }}
+            win2019-3.1
+
+  dotnet_sdk_5_0_lnx:
+    runs-on: [] ( update windows runners  )
+    steps:
+      - uses: actions/checkout@v2
+      
+      - name: Set env BRANCH
+        run: echo "BRANCH=$(echo $GITHUB_REF | cut -d'/' -f 3)" >> $GITHUB_ENV
+
+      - name: Set env isMasterBranch
+        run: |
+          if [[ $BRANCH == 'master' ]]; then
+              echo "isMasterBranch=true" >> "$GITHUB_ENV"
+          else
+              echo "isMasterBranch=false" >> "$GITHUB_ENV"
+          fi
+
+      - name: .NET SDK 5.0 Linux
+        uses: .az/jobs.yml
+        with:
+          dockerFile: "sdk/5.0/lnx/Dockerfile"
+          isMasterBranch: ${{ env.isMasterBranch }}
+          dtrConnectionName: "docker-dtr-dev.ntrs.com"
+          dtrRepository: "azure-devops/dotnet-sdk"
+          buildContext: 'sdk/'
+          tags: |
+            lnx-5.0-${{ github.run_id }}
+            lnx-5.0
+
+  dotnet_sdk_5_0_win:
+    runs-on: [] ( update windows runners  )
+    steps:
+      - uses: actions/checkout@v2
+      
+      - name: Set env BRANCH
+        run: echo "BRANCH=$(echo $GITHUB_REF | cut -d'/' -f 3)" >> $GITHUB_ENV
+
+      - name: Set env isMasterBranch
+        run: |
+          if [[ $BRANCH == 'master' ]]; then
+              echo "isMasterBranch=true" >> "$GITHUB_ENV"
+          else
+              echo "isMasterBranch=false" >> "$GITHUB_ENV"
+          fi
+
+      - name: .NET SDK 5.0 Windows
+        uses: .az/jobs.yml
+        with:
+          dockerFile: "sdk/5.0/win/Dockerfile"
+          isMasterBranch: ${{ env.isMasterBranch }}
+          dtrConnectionName: "docker-dtr-dev.ntrs.com"
+          dtrRepository: "azure-devops/dotnet-sdk"
+          buildContext: 'sdk/'
+          tags: |
+            win2019-5.0-${{ github.run_id }}
+            win2019-5.0
+      
